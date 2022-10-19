@@ -339,25 +339,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gateway2"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "capnp",
- "capnpc",
- "config",
- "futures",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "twilight-gateway",
- "twilight-http",
- "twilight-model",
-]
-
-[[package]]
 name = "generic-array"
 version = "0.14.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1051,6 +1032,41 @@ dependencies = [
  "libc",
  "winapi",
 ]
+
+[[package]]
+name = "spectacles-amqp"
+version = "0.1.0"
+
+[[package]]
+name = "spectacles-gateway"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "capnp",
+ "capnpc",
+ "config",
+ "futures",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "twilight-gateway",
+ "twilight-http",
+ "twilight-model",
+]
+
+[[package]]
+name = "spectacles-http"
+version = "0.1.0"
+
+[[package]]
+name = "spectacles-mqtt"
+version = "0.1.0"
+
+[[package]]
+name = "spectacles-redis"
+version = "0.1.0"
 
 [[package]]
 name = "spin"
