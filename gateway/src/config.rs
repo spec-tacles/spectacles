@@ -6,9 +6,17 @@ use twilight_gateway::{cluster::ShardScheme, EventType, Intents};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
 	pub token: String,
+	#[serde(default = "Config::default_group")]
+	pub group: String,
 	pub gateway: Gateway,
 	#[serde(default)]
 	pub api: Api,
+}
+
+impl Config {
+	fn default_group() -> String {
+		"gateway".to_string()
+	}
 }
 
 #[derive(Debug, Serialize, Deserialize)]

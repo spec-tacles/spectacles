@@ -1,15 +1,24 @@
-use std::io::{stdin, stdout, Write};
+use std::io::{stdout, Write};
 
+use flexbuffers::Reader;
+use futures::StreamExt;
+use serde_json::Serializer;
 use serde_transcode::transcode;
+use tokio::io::stdin;
+use tokio_util::io::ReaderStream;
 
-fn main() -> anyhow::Result<()> {
-	let mut stdin = stdin().lock();
-	let mut stdout = stdout().lock();
+#[tokio::main(flavor = "current_thread")]
+async fn main() -> anyhow::Result<()> {
+	let mut stdin = ReaderStream::new(stdin());
+	let mut stdout = stdout();
 
-	loop {
-		let mut de = rmp_serde::Deserializer::new(&mut stdin);
-		let mut ser = serde_json::Serializer::new(&mut stdout);
-		transcode(&mut de, &mut ser)?;
+	while let Some(buf) = stdin.next().await {
+		let buf = buf?;
+		let de = Reader::get_root(&*buf)?;
+		let mut ser = Serializer::new(&mut stdout);
+		transcode(de, &mut ser)?;
 		stdout.flush()?;
 	}
+
+	Ok(())
 }

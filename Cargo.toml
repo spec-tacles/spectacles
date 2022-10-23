@@ -1,2 +1,11 @@
+[package]
+name = "spectacles"
+version = "0.1.0"
+edition = "2021"
+
 [workspace]
 members = ["gateway", "brokers/*"]
+
+[dependencies]
+flexbuffers = "2.0.0"
+serde = { version = "1.0.147", features = ["derive"] }

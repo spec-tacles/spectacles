@@ -5,18 +5,16 @@ use std::{
 
 use ::config::Config;
 use anyhow::Result;
-use capnp::{message::TypedBuilder, serialize_packed};
+use flexbuffers::to_vec;
 use futures::StreamExt;
+use spectacles::EventRef;
 use tokio::spawn;
 use tracing::info;
 use twilight_gateway::Cluster;
 use twilight_http::Client;
 use twilight_model::gateway::event::DispatchEvent;
 
-use crate::schema::gateway_capnp::packet;
-
 mod config;
-mod schema;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -61,15 +59,13 @@ async fn main() -> Result<()> {
 	while let Some((shard, event)) = events.next().await {
 		let kind = event.kind();
 		if let Ok(dispatch) = DispatchEvent::try_from(event) {
-			let d = serde_json::to_vec(&dispatch)?;
+			let event = EventRef {
+				name: kind.name().unwrap_or_default(),
+				group: &config.group,
+				data: dispatch,
+			};
 
-			let mut message = TypedBuilder::<packet::Owned, _>::new_default();
-			let mut packet = message.init_root();
-			packet.set_d(&d);
-			packet.set_t(kind.name().unwrap_or_default());
-			packet.set_shard(shard);
-
-			serialize_packed::write_message(&mut out, message.borrow_inner())?;
+			out.write_all(&to_vec(&event)?)?;
 			out.flush()?;
 		}
 	}
