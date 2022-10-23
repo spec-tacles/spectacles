@@ -61,7 +61,6 @@ async fn main() -> Result<()> {
 		if let Ok(dispatch) = DispatchEvent::try_from(event) {
 			let event = EventRef {
 				name: kind.name().unwrap_or_default(),
-				group: &config.group,
 				data: dispatch,
 			};
 
