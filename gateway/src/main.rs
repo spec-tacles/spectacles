@@ -5,11 +5,10 @@ use std::{
 
 use ::config::Config;
 use anyhow::Result;
-use flexbuffers::to_vec;
 use futures::StreamExt;
 use spectacles::EventRef;
 use tokio::spawn;
-use tracing::info;
+use tracing::{debug, info};
 use twilight_gateway::Cluster;
 use twilight_http::Client;
 use twilight_model::gateway::event::DispatchEvent;
@@ -58,13 +57,17 @@ async fn main() -> Result<()> {
 	let mut out = stdout();
 	while let Some((shard, event)) = events.next().await {
 		let kind = event.kind();
+
+		debug!(kind = kind.name().unwrap_or("[unknown]"), shard, ?event);
+
 		if let Ok(dispatch) = DispatchEvent::try_from(event) {
 			let event = EventRef {
 				name: kind.name().unwrap_or_default(),
 				data: dispatch,
 			};
 
-			out.write_all(&to_vec(&event)?)?;
+			let bytes = bson::to_vec(&event)?;
+			out.write_all(&bytes)?;
 			out.flush()?;
 		}
 	}
