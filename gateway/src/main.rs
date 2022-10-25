@@ -9,6 +9,7 @@ use futures::StreamExt;
 use spectacles::EventRef;
 use tokio::spawn;
 use tracing::{debug, info};
+use tracing_subscriber::EnvFilter;
 use twilight_gateway::Cluster;
 use twilight_http::Client;
 use twilight_model::gateway::event::DispatchEvent;
@@ -17,7 +18,10 @@ mod config;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-	tracing_subscriber::fmt::fmt().with_writer(stderr).init();
+	tracing_subscriber::fmt::fmt()
+		.with_writer(stderr)
+		.with_env_filter(EnvFilter::from_default_env())
+		.init();
 
 	let config: config::Config = Config::builder()
 		.add_source(::config::File::with_name("gateway"))
