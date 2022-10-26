@@ -1,14 +1,13 @@
-use bincode::{BorrowDecode, Decode, Encode};
 use bson::Bson;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize, Encode, Decode)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Event<T> {
 	pub name: String,
 	pub data: T,
 }
 
-#[derive(Debug, Deserialize, Serialize, Encode, BorrowDecode)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct EventRef<'a, T> {
 	pub name: &'a str,
 	pub data: T,
