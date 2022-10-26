@@ -8,4 +8,5 @@ members = ["gateway", "brokers/*"]
 
 [dependencies]
 bincode = { version = "2.0.0-rc.2", features = ["derive"] }
+bson = "2.4.0"
 serde = { version = "1.0.147", features = ["derive"] }
