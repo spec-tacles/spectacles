@@ -1,22 +1,21 @@
 use std::io::stdin;
 
 use bson::{from_reader, to_vec};
-use paho_mqtt::{Client, Message};
+use options::Opt;
+use paho_mqtt::{Client, ConnectOptions, CreateOptions, Message};
 use spectacles::AnyEvent;
 use structopt::StructOpt;
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "spectacles-mqtt")]
-struct Opt {
-	#[structopt(long)]
-	url: String,
-}
+mod options;
 
 fn main() -> anyhow::Result<()> {
 	let opt = Opt::from_args();
 
-	let mqtt = Client::new(opt.url).unwrap();
-	mqtt.connect(None)?;
+	let client_options = CreateOptions::from(opt.create);
+	let mqtt = Client::new(client_options).unwrap();
+
+	let connect_options = ConnectOptions::try_from(opt.connect)?;
+	mqtt.connect(connect_options)?;
 
 	let mut in_ = stdin();
 
