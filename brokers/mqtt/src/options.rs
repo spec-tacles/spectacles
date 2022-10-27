@@ -8,7 +8,7 @@ use paho_mqtt::{
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "spectacles-mqtt")]
+#[structopt(name = "spectacles-mqtt", about = env!("CARGO_PKG_DESCRIPTION"))]
 pub struct Opt {
 	#[structopt(flatten)]
 	pub create: CreateOpt,
@@ -26,8 +26,8 @@ pub struct CreateOpt {
 	#[structopt(long, default_value)]
 	pub client_id: String,
 
-	/// The MQTT version; 0 works back from 5 to the supported version
-	#[structopt(short = "v", default_value)]
+	/// The MQTT version
+	#[structopt(long, short = "v", default_value = "5")]
 	pub mqtt_version: u32,
 }
 

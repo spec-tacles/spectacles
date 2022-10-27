@@ -2,6 +2,7 @@
 name = "spectacles-mqtt"
 version = "0.1.0"
 edition = "2021"
+description = "Proxy STDIO with an MQTT server using BSON."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
