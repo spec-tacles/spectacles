@@ -21,6 +21,7 @@ pub struct Gateway {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum Shards {
 	Bucket {
 		bucket_id: u64,
