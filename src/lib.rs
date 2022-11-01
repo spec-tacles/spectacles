@@ -1,17 +1,17 @@
-use bson::Bson;
+use bson::{RawBson, RawBsonRef};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Event<T> {
 	pub name: String,
 	pub data: T,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct EventRef<'a, T> {
 	pub name: &'a str,
 	pub data: T,
 }
 
-pub type AnyEvent = Event<Bson>;
-pub type AnyEventRef<'a> = EventRef<'a, Bson>;
+pub type AnyEvent = Event<RawBson>;
+pub type AnyEventRef<'a> = EventRef<'a, RawBsonRef<'a>>;
