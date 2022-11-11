@@ -1,6 +1,8 @@
 use bson::{RawBson, RawBsonRef};
 use serde::{Deserialize, Serialize};
 
+pub mod io;
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Event<T> {
 	pub name: String,
