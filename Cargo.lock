@@ -1671,6 +1671,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -1689,7 +1690,6 @@ dependencies = [
  "spectacles",
  "tokio",
  "tracing",
- "tracing-subscriber",
  "twilight-gateway",
  "twilight-http",
  "twilight-model",
@@ -1710,7 +1710,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -1747,6 +1746,7 @@ dependencies = [
  "serde",
  "spectacles",
  "tokio",
+ "tracing-subscriber",
 ]
 
 [[package]]

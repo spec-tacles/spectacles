@@ -2,7 +2,7 @@ use anyhow::Result;
 use bson::to_vec;
 use futures::{StreamExt, TryStreamExt};
 use redust::pool::{Manager, Pool};
-use spectacles::{io::read, AnyEvent, EventRef};
+use spectacles::{init_tracing, io::read, AnyEvent, EventRef};
 use tokio::{
 	io::{stdout, AsyncWriteExt},
 	task::JoinSet,
@@ -39,6 +39,8 @@ async fn consume_to_stdout(client: Client) -> Result<()> {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+	init_tracing();
+
 	let manager = Manager::new("".to_string());
 	let pool = Pool::builder(manager).build()?;
 	let client = Client::new("group", pool);

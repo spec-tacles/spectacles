@@ -3,12 +3,14 @@ use std::io::stdin;
 use bson::{from_reader, to_vec};
 use options::Opt;
 use paho_mqtt::{Client, ConnectOptions, CreateOptions, Message};
-use spectacles::AnyEvent;
+use spectacles::{init_tracing, AnyEvent};
 use structopt::StructOpt;
 
 mod options;
 
 fn main() -> anyhow::Result<()> {
+	init_tracing();
+
 	let opt = Opt::from_args();
 
 	let client_options = CreateOptions::from(opt.create);

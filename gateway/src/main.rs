@@ -1,15 +1,14 @@
-use std::{
-	io::{stderr, stdout, Write},
-	sync::Arc,
-};
+use std::sync::Arc;
 
 use ::config::Config;
 use anyhow::Result;
 use futures::StreamExt;
-use spectacles::EventRef;
-use tokio::spawn;
+use spectacles::{init_tracing, EventRef};
+use tokio::{
+	io::{stdout, AsyncWriteExt},
+	spawn,
+};
 use tracing::{debug, info};
-use tracing_subscriber::EnvFilter;
 use twilight_gateway::Cluster;
 use twilight_http::Client;
 use twilight_model::gateway::event::DispatchEvent;
@@ -18,10 +17,7 @@ mod config;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-	tracing_subscriber::fmt::fmt()
-		.with_writer(stderr)
-		.with_env_filter(EnvFilter::from_default_env())
-		.init();
+	init_tracing();
 
 	let config: config::Config = Config::builder()
 		.add_source(::config::File::with_name("gateway"))
@@ -71,8 +67,8 @@ async fn main() -> Result<()> {
 			};
 
 			let bytes = bson::to_vec(&event)?;
-			out.write_all(&bytes)?;
-			out.flush()?;
+			out.write_all(&bytes).await?;
+			out.flush().await?;
 		}
 	}
 

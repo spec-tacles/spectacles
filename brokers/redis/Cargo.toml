@@ -14,6 +14,7 @@ serde = "1.0.147"
 tokio = "1.21.2"
 spectacles = { version = "0.1.0", path = "../.." }
 bson = "2.4.0"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 
 [dependencies.redust]
 version = "0.3.0"

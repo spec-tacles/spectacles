@@ -1,4 +1,4 @@
-use std::io::{stderr, stdout, Write};
+use std::io::{stdout, Write};
 
 use axum::{extract::Path, routing::on, Router, Server};
 use bson::{to_vec, RawBsonRef};
@@ -6,11 +6,10 @@ use bytes::Bytes;
 use futures::StreamExt;
 use options::Opt;
 use reqwest::{Client, StatusCode};
-use spectacles::{io::read, AnyEvent, EventRef};
+use spectacles::{init_tracing, io::read, AnyEvent, EventRef};
 use structopt::StructOpt;
 use tokio::task::JoinSet;
 use tracing::{debug, info, info_span, warn, Instrument};
-use tracing_subscriber::EnvFilter;
 
 mod options;
 
@@ -78,10 +77,7 @@ async fn handle_http_in(opt: Opt) -> anyhow::Result<()> {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-	tracing_subscriber::fmt::fmt()
-		.with_writer(stderr)
-		.with_env_filter(EnvFilter::from_default_env())
-		.init();
+	init_tracing();
 
 	let opt = Opt::from_args();
 	info!(?opt);
