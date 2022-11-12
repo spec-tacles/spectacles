@@ -6,3 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.66"
+bytes = "1.2.1"
+futures = "0.3.25"
+nanoid = "0.4.0"
+serde = "1.0.147"
+tokio = "1.21.2"
+spectacles = { version = "0.1.0", path = "../.." }
+bson = "2.4.0"
+
+[dependencies.redust]
+version = "0.3.0"
+features = ["model", "pool"]
