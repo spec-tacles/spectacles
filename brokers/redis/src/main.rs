@@ -1,6 +1,6 @@
 use anyhow::Result;
 use bson::to_vec;
-use futures::TryStreamExt;
+use futures::{StreamExt, TryStreamExt};
 use redust::pool::{Manager, Pool};
 use spectacles::{io::read, AnyEvent, EventRef};
 use tokio::{
@@ -14,7 +14,7 @@ mod client;
 
 async fn publish_from_stdin(client: Client) -> Result<()> {
 	let mut stream = read::<AnyEvent>();
-	while let Some(event) = stream.try_next().await? {
+	while let Some(event) = stream.next().await {
 		client.publish(event.name, &event.data).await?;
 	}
 
