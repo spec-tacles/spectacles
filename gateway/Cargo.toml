@@ -17,4 +17,4 @@ tracing = "0.1.37"
 
 [dependencies.tokio]
 version = "1.21.2"
-features = ["rt-multi-thread", "tracing", "macros"]
+features = ["rt-multi-thread", "tracing", "macros", "io-std"]
