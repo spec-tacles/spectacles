@@ -19,7 +19,7 @@ pub struct Opt {
 #[derive(Debug, StructOpt)]
 pub struct CreateOpt {
 	/// The URL of the MQTT server.
-	#[structopt(env)]
+	#[structopt(env, short, long)]
 	pub url: String,
 
 	/// The client ID useful for session resuming

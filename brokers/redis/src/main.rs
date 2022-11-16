@@ -1,8 +1,10 @@
 use anyhow::Result;
 use bson::to_vec;
 use futures::{StreamExt, TryStreamExt};
+use options::Opt;
 use redust::pool::{Manager, Pool};
 use spectacles::{init_tracing, io::read, AnyEvent, EventRef};
+use structopt::StructOpt;
 use tokio::{
 	io::{stdout, AsyncWriteExt},
 	task::JoinSet,
@@ -11,6 +13,7 @@ use tokio::{
 use crate::client::Client;
 
 mod client;
+mod options;
 
 async fn publish_from_stdin(client: Client) -> Result<()> {
 	let mut stream = read::<AnyEvent>();
@@ -21,9 +24,9 @@ async fn publish_from_stdin(client: Client) -> Result<()> {
 	Ok(())
 }
 
-async fn consume_to_stdout(client: Client) -> Result<()> {
+async fn consume_to_stdout(client: Client, events: Vec<String>) -> Result<()> {
 	let mut out = stdout();
-	let mut stream = client.consume(["events"]);
+	let mut stream = client.consume(events);
 	while let Some(message) = stream.try_next().await? {
 		out.write_all(&to_vec(&EventRef {
 			data: message.data.clone(),
@@ -41,16 +44,20 @@ async fn consume_to_stdout(client: Client) -> Result<()> {
 async fn main() -> Result<()> {
 	init_tracing();
 
-	let manager = Manager::new("".to_string());
-	let pool = Pool::builder(manager).build()?;
-	let client = Client::new("group", pool);
+	let opt = Opt::from_args();
 
-	client.ensure_events(["events"].into_iter()).await?;
+	let manager = Manager::new(opt.address);
+	let pool = Pool::builder(manager).build()?;
+	let client = Client::new(opt.group, pool);
+
+	client.ensure_events(opt.events.iter()).await?;
 
 	let mut set = JoinSet::new();
 
 	set.spawn(publish_from_stdin(client.clone()));
-	set.spawn(consume_to_stdout(client));
+	if opt.events.len() > 0 {
+		set.spawn(consume_to_stdout(client, opt.events));
+	}
 
 	while set.join_next().await.is_some() {}
 	Ok(())
