@@ -1740,12 +1740,12 @@ dependencies = [
  "anyhow",
  "bson",
  "bytes",
+ "config",
  "futures",
  "nanoid",
  "redust",
  "serde",
  "spectacles",
- "structopt",
  "tokio",
  "tracing-subscriber",
 ]

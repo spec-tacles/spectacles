@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.66"
 bytes = "1.2.1"
+config = "0.13.2"
 futures = "0.3.25"
 nanoid = "0.4.0"
 serde = "1.0.147"
@@ -15,7 +16,6 @@ tokio = { version = "1.21.2", features = ["macros", "rt", "rt-multi-thread", "io
 spectacles = { version = "0.1.0", path = "../.." }
 bson = "2.4.0"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
-structopt = "0.3.26"
 
 [dependencies.redust]
 version = "0.3.0"
