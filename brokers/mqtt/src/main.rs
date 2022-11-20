@@ -4,10 +4,10 @@ use std::{
 };
 
 use anyhow::Result;
-use bson::{from_reader, to_vec};
+use bson::{from_reader, from_slice, to_vec};
 use options::Opt;
 use paho_mqtt::{Client, ConnectOptions, CreateOptions, Message};
-use spectacles::{init_tracing, AnyEvent, EventRef};
+use spectacles::{init_tracing, AnyEvent, AnyEventRef};
 use structopt::StructOpt;
 
 mod options;
@@ -30,9 +30,9 @@ fn consume_to_stdout(mqtt: Client, events: Vec<String>, qos: i32) -> Result<()> 
 	let stream = mqtt.start_consuming();
 
 	while let Some(message) = stream.recv()? {
-		let event = EventRef {
+		let event = AnyEventRef {
 			name: message.topic(),
-			data: message.payload(),
+			data: from_slice(message.payload())?,
 		};
 		out.write_all(&to_vec(&event)?)?;
 	}
