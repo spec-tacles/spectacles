@@ -1,10 +1,9 @@
 use anyhow::Result;
 use bson::to_vec;
+use config::Config;
 use futures::{StreamExt, TryStreamExt};
-use options::Opt;
 use redust::pool::{Manager, Pool};
 use spectacles::{init_tracing, io::read, AnyEvent, EventRef};
-use structopt::StructOpt;
 use tokio::{
 	io::{stdout, AsyncWriteExt},
 	task::JoinSet,
@@ -44,19 +43,31 @@ async fn consume_to_stdout(client: Client, events: Vec<String>) -> Result<()> {
 async fn main() -> Result<()> {
 	init_tracing();
 
-	let opt = Opt::from_args();
+	let config: options::Opt = Config::builder()
+		.add_source(
+			config::File::with_name("redis")
+				.required(false),
+		)
+		.add_source(
+			config::Environment::with_prefix("REDIS")
+				.try_parsing(true)
+				.list_separator(" ")
+				.with_list_parse_key("events"),
+		)
+		.build()?
+		.try_deserialize()?;
 
-	let manager = Manager::new(opt.address);
+	let manager = Manager::new(config.address);
 	let pool = Pool::builder(manager).build()?;
-	let client = Client::new(opt.group, pool);
+	let client = Client::new(config.group, pool);
 
-	client.ensure_events(opt.events.iter()).await?;
+	client.ensure_events(config.events.iter()).await?;
 
 	let mut set = JoinSet::new();
 
 	set.spawn(publish_from_stdin(client.clone()));
-	if opt.events.len() > 0 {
-		set.spawn(consume_to_stdout(client, opt.events));
+	if config.events.len() > 0 {
+		set.spawn(consume_to_stdout(client, config.events));
 	}
 
 	while set.join_next().await.is_some() {}
