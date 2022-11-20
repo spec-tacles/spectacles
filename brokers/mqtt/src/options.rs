@@ -14,6 +14,15 @@ pub struct Opt {
 	pub create: CreateOpt,
 	#[structopt(flatten)]
 	pub connect: ConnectOpt,
+	/// Events to subscribe to.
+	#[structopt(long)]
+	pub events: Vec<String>,
+	/// Quality of Service for sending & receiving messages
+	/// - 0: At most once
+	/// - 1: At least once
+	/// - 2: Exactly once
+	#[structopt(long, default_value = "2")]
+	pub qos: i32,
 }
 
 #[derive(Debug, StructOpt)]
