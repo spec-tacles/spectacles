@@ -27,7 +27,7 @@ pub struct Config {
 	pub connect: ConnectOpt,
 
 	/// Events to subscribe to.
-	#[arg(long, env = "MQTT_EVENTS", value_delimiter = ',')]
+	#[arg(short, long, env = "MQTT_EVENTS", value_delimiter = ',')]
 	pub events: Vec<String>,
 
 	/// Quality of Service for sending & receiving messages
@@ -77,7 +77,7 @@ impl Config {
 #[derive(Debug, Serialize, Deserialize, Parser)]
 pub struct CreateOpt {
 	/// The URL of the MQTT server.
-	#[arg(short, long, env = "MQTT_URL", default_value = "localhost:1883")]
+	#[arg(long, env = "MQTT_URL", default_value = "localhost:1883")]
 	pub url: String,
 
 	/// The client ID useful for session resuming
