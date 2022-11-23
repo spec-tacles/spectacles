@@ -23,17 +23,13 @@ pub struct Config {
 	pub group: String,
 
 	#[arg(long, short, env = "REDIS_EVENTS", value_delimiter = ',')]
-	#[serde(default = "Config::default_events")]
+	#[serde(default)]
 	pub events: Vec<String>,
 }
 
 impl Config {
 	pub fn default_address() -> String {
 		"localhost:6379".to_string()
-	}
-
-	pub fn default_events() -> Vec<String> {
-		vec![]
 	}
 }
 

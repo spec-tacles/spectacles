@@ -24,7 +24,7 @@ pub struct Config {
 
 	/// Events to subscribe to.
 	#[arg(short, long, env = "MQTT_EVENTS", value_delimiter = ',')]
-	#[serde(default = "Config::default_events")]
+	#[serde(default)]
 	pub events: Vec<String>,
 
 	/// Quality of Service for sending & receiving messages
@@ -37,10 +37,6 @@ pub struct Config {
 }
 
 impl Config {
-	pub fn default_events() -> Vec<String> {
-		vec![]
-	}
-
 	pub fn default_qos() -> i32 {
 		2
 	}
@@ -78,7 +74,7 @@ pub struct CreateOpt {
 
 	/// The client ID useful for session resuming
 	#[arg(long, env = "MQTT_CLIENT_ID", default_value = "")]
-	#[serde(default = "CreateOpt::default_client_id")]
+	#[serde(default)]
 	pub client_id: String,
 
 	/// The MQTT version
@@ -90,10 +86,6 @@ pub struct CreateOpt {
 impl CreateOpt {
 	pub fn default_url() -> String {
 		"localhost:1883".to_string()
-	}
-
-	pub fn default_client_id() -> String {
-		"".to_string()
 	}
 
 	pub fn default_version() -> u32 {
@@ -122,7 +114,7 @@ pub struct ConnectOpt {
 	/// This is for MQTT v3.x connections only, and if set, will set the other options to be
 	/// compatible with v3.
 	#[arg(long, env = "MQTT_CLEAN_SESSION")]
-	#[serde(default = "ConnectOpt::default_clean_session")]
+	#[serde(default)]
 	pub clean_session: bool,
 
 	/// Sets the 'clean start' flag to send to the broker.
@@ -130,7 +122,7 @@ pub struct ConnectOpt {
 	/// This is for MQTT v5 connections only, and if set, will set the other options to be compatible
 	/// with v5.
 	#[arg(long, env = "MQTT_CLEAN_START")]
-	#[serde(default = "ConnectOpt::default_clean_start")]
+	#[serde(default)]
 	pub clean_start: bool,
 
 	/// The maximum number of in-flight messages that can be simultaneously handled by this client.
@@ -181,16 +173,6 @@ pub struct ConnectOpt {
 
 	#[command(flatten)]
 	pub ssl: SslOpts,
-}
-
-impl ConnectOpt {
-	pub fn default_clean_session() -> bool {
-		false
-	}
-
-	pub fn default_clean_start() -> bool {
-		false
-	}
 }
 
 impl TryFrom<ConnectOpt> for ConnectOptions {
@@ -273,12 +255,12 @@ pub struct SslOpts {
 
 	/// Whether verification of the server certificate is enabled.
 	#[arg(long, env = "MQTT_ENABLE_SERVER_CERT_AUTH")]
-	#[serde(default = "SslOpts::default_enable_server_cert_auth")]
+	#[serde(default)]
 	pub enable_server_cert_auth: bool,
 
 	/// Whether to perform post connection certificate checks.
 	#[arg(long, env = "MQTT_VERIFY")]
-	#[serde(default = "SslOpts::default_verify")]
+	#[serde(default)]
 	pub verify: bool,
 
 	/// Path to the directory containing CA certificates in PEM format.
@@ -287,22 +269,8 @@ pub struct SslOpts {
 
 	/// Whether to load the default SSL CA.
 	#[arg(long, env = "MQTT_DISABLE_DEFAULT_TRUST_STORE")]
-	#[serde(default = "SslOpts::default_disable_default_trust_store")]
+	#[serde(default)]
 	pub disable_default_trust_store: bool,
-}
-
-impl SslOpts {
-	pub fn default_enable_server_cert_auth() -> bool {
-		false
-	}
-
-	pub fn default_verify() -> bool {
-		false
-	}
-
-	pub fn default_disable_default_trust_store() -> bool {
-		false
-	}
 }
 
 impl TryFrom<SslOpts> for SslOptions {
