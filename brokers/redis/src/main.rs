@@ -1,6 +1,5 @@
 use anyhow::Result;
 use bson::to_vec;
-use config::Config;
 use futures::{StreamExt, TryStreamExt};
 use redust::pool::{Manager, Pool};
 use spectacles::{init_tracing, io::read, AnyEvent, EventRef};
@@ -10,9 +9,10 @@ use tokio::{
 };
 
 use crate::client::Client;
+use crate::config::Config;
 
 mod client;
-mod options;
+mod config;
 
 async fn publish_from_stdin(client: Client) -> Result<()> {
 	let mut stream = read::<AnyEvent>();
@@ -43,19 +43,7 @@ async fn consume_to_stdout(client: Client, events: Vec<String>) -> Result<()> {
 async fn main() -> Result<()> {
 	init_tracing();
 
-	let config: options::Opt = Config::builder()
-		.add_source(
-			config::File::with_name("redis")
-				.required(false),
-		)
-		.add_source(
-			config::Environment::with_prefix("REDIS")
-				.try_parsing(true)
-				.list_separator(" ")
-				.with_list_parse_key("events"),
-		)
-		.build()?
-		.try_deserialize()?;
+	let config = Config::build()?;
 
 	let manager = Manager::new(config.address);
 	let pool = Pool::builder(manager).build()?;

@@ -1,43 +1,96 @@
-use std::{path::PathBuf, time::Duration};
-
+use anyhow::Result;
+use clap::Parser;
+use config;
 use humantime::parse_duration;
 use paho_mqtt::{
 	ConnectOptions, ConnectOptionsBuilder, CreateOptions, CreateOptionsBuilder, Error, SslOptions,
 	SslOptionsBuilder,
 };
-use structopt::StructOpt;
+use serde::{Deserialize, Serialize};
+use std::{path::PathBuf, time::Duration};
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "spectacles-mqtt", about = env!("CARGO_PKG_DESCRIPTION"))]
-pub struct Opt {
-	#[structopt(flatten)]
+#[derive(Debug, Serialize, Deserialize, Parser)]
+#[command(name = "spectacles-redis", about = env!("CARGO_PKG_DESCRIPTION"))]
+pub struct Config {
+	#[arg(long, short, env = "MQTT_CONFIG_FILE", exclusive = true)]
+	pub config_file: Option<String>,
+
+	#[command(flatten)]
+	#[serde(flatten)]
 	pub create: CreateOpt,
-	#[structopt(flatten)]
+
+	#[command(flatten)]
 	pub connect: ConnectOpt,
+
 	/// Events to subscribe to.
-	#[structopt(long)]
+	#[arg(short, long, env = "MQTT_EVENTS", value_delimiter = ',')]
+	#[serde(default)]
 	pub events: Vec<String>,
+
 	/// Quality of Service for sending & receiving messages
 	/// - 0: At most once
 	/// - 1: At least once
 	/// - 2: Exactly once
-	#[structopt(long, default_value = "2")]
+	#[arg(long, env = "MQTT_QOS", default_value = "2")]
+	#[serde(default = "Config::default_qos")]
 	pub qos: i32,
 }
 
-#[derive(Debug, StructOpt)]
+impl Config {
+	pub fn default_qos() -> i32 {
+		2
+	}
+
+	pub fn build() -> Result<Config> {
+		let opt = Config::parse();
+
+		if let Some(config_file) = opt.config_file {
+			let file_source = config::File::with_name(&config_file).required(false);
+
+			let env_source = config::Environment::with_prefix("MQTT")
+				.try_parsing(true)
+				.list_separator(",")
+				.with_list_parse_key("events");
+
+			let config: Config = config::Config::builder()
+				.add_source(file_source)
+				.add_source(env_source)
+				.build()?
+				.try_deserialize()?;
+
+			return Ok(config);
+		} else {
+			Ok(opt)
+		}
+	}
+}
+
+#[derive(Debug, Serialize, Deserialize, Parser)]
 pub struct CreateOpt {
 	/// The URL of the MQTT server.
-	#[structopt(env, short, long)]
+	#[arg(long, env = "MQTT_URL", default_value = "localhost:1883")]
+	#[serde(default = "CreateOpt::default_url")]
 	pub url: String,
 
 	/// The client ID useful for session resuming
-	#[structopt(long, default_value)]
+	#[arg(long, env = "MQTT_CLIENT_ID", default_value = "")]
+	#[serde(default)]
 	pub client_id: String,
 
 	/// The MQTT version
-	#[structopt(long, short = "v", default_value = "5")]
+	#[arg(long, short = 'v', env = "MQTT_VERSION", default_value = "5")]
+	#[serde(default = "CreateOpt::default_version")]
 	pub mqtt_version: u32,
+}
+
+impl CreateOpt {
+	pub fn default_url() -> String {
+		"localhost:1883".to_string()
+	}
+
+	pub fn default_version() -> u32 {
+		5
+	}
 }
 
 impl From<CreateOpt> for CreateOptions {
@@ -50,63 +103,75 @@ impl From<CreateOpt> for CreateOptions {
 	}
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Serialize, Deserialize, Parser)]
 pub struct ConnectOpt {
 	/// The keep-alive interval for the client session.
-	#[structopt(long, parse(try_from_str = parse_duration))]
+	#[arg(long, env = "MQTT_KEEP_ALIVE_INTERVAL", value_parser(parse_duration))]
 	pub keep_alive_interval: Option<Duration>,
 
 	/// Sets the 'clean session' flag to send to the broker.
 	///
 	/// This is for MQTT v3.x connections only, and if set, will set the other options to be
 	/// compatible with v3.
-	#[structopt(long)]
+	#[arg(long, env = "MQTT_CLEAN_SESSION")]
+	#[serde(default)]
 	pub clean_session: bool,
 
 	/// Sets the 'clean start' flag to send to the broker.
 	///
 	/// This is for MQTT v5 connections only, and if set, will set the other options to be compatible
 	/// with v5.
-	#[structopt(long)]
+	#[arg(long, env = "MQTT_CLEAN_START")]
+	#[serde(default)]
 	pub clean_start: bool,
 
 	/// The maximum number of in-flight messages that can be simultaneously handled by this client.
-	#[structopt(long)]
+	#[arg(long, env = "MQTT_MAX_INFLIGHT")]
 	pub max_inflight: Option<i32>,
 
 	/// The username for authentication with the broker.
-	#[structopt(long, short)]
+	#[arg(long, short, env = "MQTT_USERNAME")]
 	pub username: Option<String>,
 
 	/// The password for authenticaton with the broker.
-	#[structopt(long, short)]
+	#[arg(long, short, env = "MQTT_PASSWORD")]
 	pub password: Option<String>,
 
 	/// The time interval in which to allow the connection to complete.
-	#[structopt(long, parse(try_from_str = parse_duration))]
+	#[arg(long, env = "MQTT_CONNECT_TIMEOUT", value_parser(parse_duration))]
 	pub connect_timeout: Option<Duration>,
 
 	/// The time interval in which to retry connections.
-	#[structopt(long, parse(try_from_str = parse_duration))]
+	#[arg(long, env = "MQTT_RETRY_INTERVAL", value_parser(parse_duration))]
 	pub retry_interval: Option<Duration>,
 
 	/// The minimum interval in which to retry connecting.
-	#[structopt(long, parse(try_from_str = parse_duration), required_if("automatic_reconnect_max", "Option::is_some"))]
+	#[arg(
+		long,
+		env = "MQTT_AUTOMATIC_RECONNECT_MIN",
+		value_parser(parse_duration),
+		requires("automatic_reconnect_max")
+	)]
 	pub automatic_reconnect_min: Option<Duration>,
 
 	/// The maximum interval in which to retry connecting.
-	#[structopt(long, parse(try_from_str = parse_duration), required_if("automatic_reconnect_min", "Option::is_some"))]
+	#[arg(
+		long,
+		env = "MQTT_AUTOMATIC_RECONNECT_MAX",
+		value_parser(parse_duration),
+		requires("automatic_reconnect_min")
+	)]
 	pub automatic_reconnect_max: Option<Duration>,
 
 	/// The HTTP proxy for websockets.
-	#[structopt(long)]
+	#[arg(long, env = "MQTT_HTTP_PROXY")]
 	pub http_proxy: Option<String>,
 
 	/// The HTTPS proxy for websockets.
-	#[structopt(long)]
+	#[arg(long, env = "MQTT_HTTPS_PROXY")]
 	pub https_proxy: Option<String>,
 
-	#[structopt(flatten)]
+	#[command(flatten)]
 	pub ssl: SslOpts,
 }
 
@@ -160,22 +225,22 @@ impl TryFrom<ConnectOpt> for ConnectOptions {
 	}
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Debug, Serialize, Deserialize, Parser)]
 pub struct SslOpts {
 	/// Path to the PEM file containing public certificates to trust.
-	#[structopt(long)]
+	#[arg(long, env = "MQTT_TRUST_STORE")]
 	pub trust_store: Option<PathBuf>,
 
 	/// Path to the PEM file containing the public certificate chain.
-	#[structopt(long)]
+	#[arg(long, env = "MQTT_KEY_STORE")]
 	pub key_store: Option<PathBuf>,
 
 	/// Path to the PEM file containing the client's private key if not in the key store.
-	#[structopt(long)]
+	#[arg(long, env = "MQTT_PRIVATE_KEY")]
 	pub private_key: Option<PathBuf>,
 
 	/// The password to load the private key, if encrypted.
-	#[structopt(long)]
+	#[arg(long, env = "MQTT_PRIVATE_KEY_PASSWORD")]
 	pub private_key_password: Option<String>,
 
 	/// The list of cypher suites the client will present to the server during the SSL handshake.
@@ -185,23 +250,26 @@ pub struct SslOpts {
 	///
 	/// If this setting is ommitted, its default value will be “ALL”, that is, all the cipher suites
 	/// -excluding those offering no encryption- will be considered.
-	#[structopt(long)]
-	pub enabled_cypher_suites: Option<String>,
+	#[arg(long, env = "MQTT_ENABLED_CIPHER_SUITES")]
+	pub enabled_cipher_suites: Option<String>,
 
 	/// Whether verification of the server certificate is enabled.
-	#[structopt(long)]
+	#[arg(long, env = "MQTT_ENABLE_SERVER_CERT_AUTH")]
+	#[serde(default)]
 	pub enable_server_cert_auth: bool,
 
 	/// Whether to perform post connection certificate checks.
-	#[structopt(long)]
+	#[arg(long, env = "MQTT_VERIFY")]
+	#[serde(default)]
 	pub verify: bool,
 
 	/// Path to the directory containing CA certificates in PEM format.
-	#[structopt(long)]
+	#[arg(long, env = "MQTT_CA_PATH")]
 	pub ca_path: Option<PathBuf>,
 
 	/// Whether to load the default SSL CA.
-	#[structopt(long)]
+	#[arg(long, env = "MQTT_DISABLE_DEFAULT_TRUST_STORE")]
+	#[serde(default)]
 	pub disable_default_trust_store: bool,
 }
 
@@ -227,7 +295,7 @@ impl TryFrom<SslOpts> for SslOptions {
 			builder = builder.private_key_password(private_key_password);
 		}
 
-		if let Some(enabled_cipher_suites) = opts.enabled_cypher_suites {
+		if let Some(enabled_cipher_suites) = opts.enabled_cipher_suites {
 			builder = builder.enabled_cipher_suites(enabled_cipher_suites);
 		}
 

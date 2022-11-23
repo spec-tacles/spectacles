@@ -9,7 +9,9 @@ description = "Proxy STDIO with an MQTT server using BSON."
 [dependencies]
 anyhow = "1.0.66"
 bson = "2.4.0"
+clap = { version = "4.0.26", features = ["derive", "env"] }
+config = "0.13.2"
 humantime = "2.1.0"
 paho-mqtt = "0.11.1"
+serde = { version = "1.0.147", features = ["derive"] }
 spectacles = { version = "0.1.0", path = "../.." }
-structopt = "0.3.26"

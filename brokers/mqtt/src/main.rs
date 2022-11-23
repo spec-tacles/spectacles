@@ -2,15 +2,14 @@ use std::{
 	io::{stdin, stdout, Write},
 	thread::spawn,
 };
-
 use anyhow::Result;
 use bson::{from_reader, from_slice, to_vec};
-use options::Opt;
 use paho_mqtt::{Client, ConnectOptions, CreateOptions, Message};
 use spectacles::{init_tracing, AnyEvent, AnyEventRef};
-use structopt::StructOpt;
 
-mod options;
+use crate::config::Config;
+
+mod config;
 
 fn publish_from_stdin(mqtt: Client, qos: i32) -> Result<()> {
 	let mut in_ = stdin();
@@ -43,19 +42,19 @@ fn consume_to_stdout(mqtt: Client, events: Vec<String>, qos: i32) -> Result<()> 
 fn main() -> Result<()> {
 	init_tracing();
 
-	let opt = Opt::from_args();
+	let config = Config::build()?;
 
-	let client_options = CreateOptions::from(opt.create);
+	let client_options = CreateOptions::from(config.create);
 	let mqtt = Client::new(client_options).unwrap();
 
-	let connect_options = ConnectOptions::try_from(opt.connect)?;
+	let connect_options = ConnectOptions::try_from(config.connect)?;
 	mqtt.connect(connect_options)?;
 
 	let mqtt_pub = mqtt.clone();
-	let handle = spawn(move || publish_from_stdin(mqtt_pub, opt.qos));
+	let handle = spawn(move || publish_from_stdin(mqtt_pub, config.qos));
 
-	if !opt.events.is_empty() {
-		consume_to_stdout(mqtt, opt.events, opt.qos)?;
+	if !config.events.is_empty() {
+		consume_to_stdout(mqtt, config.events, config.qos)?;
 	}
 
 	handle.join().unwrap()?;
