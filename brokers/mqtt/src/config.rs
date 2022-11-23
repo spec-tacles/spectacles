@@ -1,18 +1,13 @@
-use std::{path::PathBuf, time::Duration};
 use anyhow::Result;
-use clap::{Parser};
+use clap::Parser;
 use config;
 use humantime::parse_duration;
 use paho_mqtt::{
-	ConnectOptions,
-	ConnectOptionsBuilder,
-	CreateOptions,
-	CreateOptionsBuilder,
-	Error,
-	SslOptions,
+	ConnectOptions, ConnectOptionsBuilder, CreateOptions, CreateOptionsBuilder, Error, SslOptions,
 	SslOptionsBuilder,
 };
 use serde::{Deserialize, Serialize};
+use std::{path::PathBuf, time::Duration};
 
 #[derive(Debug, Serialize, Deserialize, Parser)]
 #[command(name = "spectacles-redis", about = env!("CARGO_PKG_DESCRIPTION"))]
@@ -21,6 +16,7 @@ pub struct Config {
 	pub config_file: Option<String>,
 
 	#[command(flatten)]
+	#[serde(flatten)]
 	pub create: CreateOpt,
 
 	#[command(flatten)]
@@ -28,6 +24,7 @@ pub struct Config {
 
 	/// Events to subscribe to.
 	#[arg(short, long, env = "MQTT_EVENTS", value_delimiter = ',')]
+	#[serde(default = "Config::default_events")]
 	pub events: Vec<String>,
 
 	/// Quality of Service for sending & receiving messages
@@ -35,16 +32,24 @@ pub struct Config {
 	/// - 1: At least once
 	/// - 2: Exactly once
 	#[arg(long, env = "MQTT_QOS", default_value = "2")]
+	#[serde(default = "Config::default_qos")]
 	pub qos: i32,
 }
 
 impl Config {
+	pub fn default_events() -> Vec<String> {
+		vec![]
+	}
+
+	pub fn default_qos() -> i32 {
+		2
+	}
+
 	pub fn build() -> Result<Config> {
 		let opt = Config::parse();
 
 		if let Some(config_file) = opt.config_file {
-			let file_source = config::File::with_name(&config_file)
-				.required(false);
+			let file_source = config::File::with_name(&config_file).required(false);
 
 			let env_source = config::Environment::with_prefix("MQTT")
 				.try_parsing(true)
@@ -54,16 +59,6 @@ impl Config {
 			let config: Config = config::Config::builder()
 				.add_source(file_source)
 				.add_source(env_source)
-				.set_default("events", vec![] as Vec<String>)?
-				.set_default("qos", 2)?
-				.set_default("create.url", "localhost:1883")?
-				.set_default("create.client_id", "")?
-				.set_default("create.mqtt_version", 5)?
-				.set_default("connect.clean_session", false)?
-				.set_default("connect.clean_start", false)?
-				.set_default("connect.ssl.enable_server_cert_auth", false)?
-				.set_default("connect.ssl.verify", false)?
-				.set_default("connect.ssl.disable_default_trust_store", false)?
 				.build()?
 				.try_deserialize()?;
 
@@ -78,15 +73,32 @@ impl Config {
 pub struct CreateOpt {
 	/// The URL of the MQTT server.
 	#[arg(long, env = "MQTT_URL", default_value = "localhost:1883")]
+	#[serde(default = "CreateOpt::default_url")]
 	pub url: String,
 
 	/// The client ID useful for session resuming
 	#[arg(long, env = "MQTT_CLIENT_ID", default_value = "")]
+	#[serde(default = "CreateOpt::default_client_id")]
 	pub client_id: String,
 
 	/// The MQTT version
 	#[arg(long, short = 'v', env = "MQTT_VERSION", default_value = "5")]
+	#[serde(default = "CreateOpt::default_version")]
 	pub mqtt_version: u32,
+}
+
+impl CreateOpt {
+	pub fn default_url() -> String {
+		"localhost:1883".to_string()
+	}
+
+	pub fn default_client_id() -> String {
+		"".to_string()
+	}
+
+	pub fn default_version() -> u32 {
+		5
+	}
 }
 
 impl From<CreateOpt> for CreateOptions {
@@ -110,6 +122,7 @@ pub struct ConnectOpt {
 	/// This is for MQTT v3.x connections only, and if set, will set the other options to be
 	/// compatible with v3.
 	#[arg(long, env = "MQTT_CLEAN_SESSION")]
+	#[serde(default = "ConnectOpt::default_clean_session")]
 	pub clean_session: bool,
 
 	/// Sets the 'clean start' flag to send to the broker.
@@ -117,6 +130,7 @@ pub struct ConnectOpt {
 	/// This is for MQTT v5 connections only, and if set, will set the other options to be compatible
 	/// with v5.
 	#[arg(long, env = "MQTT_CLEAN_START")]
+	#[serde(default = "ConnectOpt::default_clean_start")]
 	pub clean_start: bool,
 
 	/// The maximum number of in-flight messages that can be simultaneously handled by this client.
@@ -140,11 +154,21 @@ pub struct ConnectOpt {
 	pub retry_interval: Option<Duration>,
 
 	/// The minimum interval in which to retry connecting.
-	#[arg(long, env = "MQTT_AUTOMATIC_RECONNECT_MIN", value_parser(parse_duration), requires("automatic_reconnect_max"))]
+	#[arg(
+		long,
+		env = "MQTT_AUTOMATIC_RECONNECT_MIN",
+		value_parser(parse_duration),
+		requires("automatic_reconnect_max")
+	)]
 	pub automatic_reconnect_min: Option<Duration>,
 
 	/// The maximum interval in which to retry connecting.
-	#[arg(long, env = "MQTT_AUTOMATIC_RECONNECT_MAX", value_parser(parse_duration), requires("automatic_reconnect_min"))]
+	#[arg(
+		long,
+		env = "MQTT_AUTOMATIC_RECONNECT_MAX",
+		value_parser(parse_duration),
+		requires("automatic_reconnect_min")
+	)]
 	pub automatic_reconnect_max: Option<Duration>,
 
 	/// The HTTP proxy for websockets.
@@ -157,6 +181,16 @@ pub struct ConnectOpt {
 
 	#[command(flatten)]
 	pub ssl: SslOpts,
+}
+
+impl ConnectOpt {
+	pub fn default_clean_session() -> bool {
+		false
+	}
+
+	pub fn default_clean_start() -> bool {
+		false
+	}
 }
 
 impl TryFrom<ConnectOpt> for ConnectOptions {
@@ -239,10 +273,12 @@ pub struct SslOpts {
 
 	/// Whether verification of the server certificate is enabled.
 	#[arg(long, env = "MQTT_ENABLE_SERVER_CERT_AUTH")]
+	#[serde(default = "SslOpts::default_enable_server_cert_auth")]
 	pub enable_server_cert_auth: bool,
 
 	/// Whether to perform post connection certificate checks.
 	#[arg(long, env = "MQTT_VERIFY")]
+	#[serde(default = "SslOpts::default_verify")]
 	pub verify: bool,
 
 	/// Path to the directory containing CA certificates in PEM format.
@@ -251,7 +287,22 @@ pub struct SslOpts {
 
 	/// Whether to load the default SSL CA.
 	#[arg(long, env = "MQTT_DISABLE_DEFAULT_TRUST_STORE")]
+	#[serde(default = "SslOpts::default_disable_default_trust_store")]
 	pub disable_default_trust_store: bool,
+}
+
+impl SslOpts {
+	pub fn default_enable_server_cert_auth() -> bool {
+		false
+	}
+
+	pub fn default_verify() -> bool {
+		false
+	}
+
+	pub fn default_disable_default_trust_store() -> bool {
+		false
+	}
 }
 
 impl TryFrom<SslOpts> for SslOptions {
