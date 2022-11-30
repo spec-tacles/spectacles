@@ -31,6 +31,6 @@ total = 0
 
 [api]
 version = 0
-base = ""
+base = { url = "", use_http = true }
 timeout = ""
 ```
