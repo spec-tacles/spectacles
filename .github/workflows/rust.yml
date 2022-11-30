@@ -20,3 +20,23 @@ jobs:
       run: cargo build --verbose --workspace
     - name: Run tests
       run: cargo test --verbose --workspace
+
+  release:
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build
+      run: cargo build --verbose --release --workspace
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.os }}
+        path: |
+          target/release/spectacles-*
+          !**.d
