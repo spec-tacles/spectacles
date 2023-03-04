@@ -1,17 +1,17 @@
-use std::sync::Arc;
-
 use ::config::Config;
 use anyhow::Result;
 use futures::StreamExt;
 use spectacles::{init_tracing, EventRef};
-use tokio::{
-	io::{stdout, AsyncWriteExt},
-	spawn,
+use tokio::io::{stdout, AsyncWriteExt};
+use tracing::{debug, info, warn};
+use twilight_gateway::{
+	stream::{self, ShardEventStream},
+	ConfigBuilder,
 };
-use tracing::{debug, info};
-use twilight_gateway::Cluster;
 use twilight_http::Client;
 use twilight_model::gateway::event::DispatchEvent;
+
+use crate::config::Shards;
 
 mod config;
 
@@ -38,37 +38,59 @@ async fn main() -> Result<()> {
 		.token(config.token.clone())
 		.build();
 
-	let mut builder = Cluster::builder(config.token, config.gateway.intents);
+	let gw_config = twilight_gateway::Config::new(config.token, config.gateway.intents);
 
-	if let Some(event_types) = config.gateway.events {
-		builder = builder.event_types(event_types.into_iter().map(Into::into).collect());
-	}
+	let per_shard_config = |_, mut builder: ConfigBuilder| {
+		if let Some(event_types) = config.gateway.events.clone() {
+			builder = builder.event_types(event_types.into_iter().map(Into::into).collect());
+		}
 
-	if let Some(shards) = config.gateway.shards {
-		builder = builder.shard_scheme(shards.into());
-	}
+		builder.build()
+	};
 
-	let (cluster, mut events) = builder.http_client(Arc::new(client)).build().await?;
+	let mut shards: Vec<_> = match config.gateway.shards {
+		Shards::Recommended => stream::create_recommended(&client, gw_config, per_shard_config)
+			.await?
+			.collect(),
+		Shards::Bucket {
+			bucket_id,
+			concurrency,
+			total,
+		} => stream::create_bucket(bucket_id, concurrency, total, gw_config, per_shard_config)
+			.collect(),
+		Shards::Range { from, to, total } => {
+			stream::create_range(from..to, total, gw_config, per_shard_config).collect()
+		}
+	};
 
-	spawn(async move {
-		cluster.up().await;
-	});
+	let mut stream = ShardEventStream::new(shards.iter_mut());
 
 	let mut out = stdout();
-	while let Some((shard, event)) = events.next().await {
-		let kind = event.kind();
+	while let Some((shard, event)) = stream.next().await {
+		match event {
+			Ok(event) => {
+				let kind = event.kind();
 
-		debug!(kind = kind.name().unwrap_or("[unknown]"), shard, ?event);
+				debug!(kind = kind.name().unwrap_or("[unknown]"), shard = ?shard.id(), ?event);
 
-		if let Ok(dispatch) = DispatchEvent::try_from(event) {
-			let event = EventRef {
-				name: kind.name().unwrap_or_default(),
-				data: dispatch,
-			};
+				if let Ok(dispatch) = DispatchEvent::try_from(event) {
+					let event = EventRef {
+						name: kind.name().unwrap_or_default(),
+						data: dispatch,
+					};
 
-			let bytes = bson::to_vec(&event)?;
-			out.write_all(&bytes).await?;
-			out.flush().await?;
+					let bytes = bson::to_vec(&event)?;
+					out.write_all(&bytes).await?;
+					out.flush().await?;
+				}
+			}
+			Err(error) => {
+				warn!(?error);
+
+				if error.is_fatal() {
+					break;
+				}
+			}
 		}
 	}
 

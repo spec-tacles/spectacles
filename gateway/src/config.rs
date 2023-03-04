@@ -1,7 +1,7 @@
 use std::{num::NonZeroUsize, time::Duration};
 
 use serde::{Deserialize, Serialize};
-use twilight_gateway::{cluster::ShardScheme, EventType, Intents};
+use twilight_gateway::{EventType, Intents};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
@@ -17,7 +17,7 @@ pub struct Gateway {
 	#[serde(default)]
 	pub events: Option<Vec<EventType>>,
 	#[serde(default)]
-	pub shards: Option<Shards>,
+	pub shards: Shards,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -33,22 +33,12 @@ pub enum Shards {
 		to: u64,
 		total: u64,
 	},
+	Recommended,
 }
 
-impl From<Shards> for ShardScheme {
-	fn from(shards: Shards) -> Self {
-		match shards {
-			Shards::Bucket {
-				bucket_id,
-				concurrency,
-				total,
-			} => ShardScheme::Bucket {
-				bucket_id,
-				concurrency,
-				total,
-			},
-			Shards::Range { from, to, total } => ShardScheme::Range { from, to, total },
-		}
+impl Default for Shards {
+	fn default() -> Self {
+		Self::Recommended
 	}
 }
 
