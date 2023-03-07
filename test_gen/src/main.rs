@@ -4,9 +4,8 @@ use std::{
 	io::{stdout, Write},
 };
 
-use bson::to_vec;
 use fake::{Fake, Faker};
-use spectacles::Event;
+use spectacles::{to_vec, Event};
 
 fn send_output(mut out: impl Write) {
 	let data = Faker.fake::<HashMap<String, String>>();

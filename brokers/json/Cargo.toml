@@ -8,4 +8,4 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.66"
 serde_json = "1.0.87"
-bson = "2.4.0"
+spectacles = { version = "0.1.0", path = "../.." }

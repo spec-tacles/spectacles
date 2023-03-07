@@ -1,12 +1,11 @@
 use std::io::{stdout, Write};
 
 use axum::{extract::Path, routing::on, Router, Server};
-use bson::{to_vec, RawBsonRef};
 use bytes::Bytes;
 use futures::StreamExt;
 use options::Opt;
 use reqwest::{Client, StatusCode};
-use spectacles::{init_tracing, io::read, AnyEvent, EventRef};
+use spectacles::{from_slice, init_tracing, io::read, to_vec, AnyEvent, EventRef, Value};
 use structopt::StructOpt;
 use tokio::task::JoinSet;
 use tracing::{debug, info, info_span, warn, Instrument};
@@ -51,7 +50,7 @@ async fn handle_http_in(opt: Opt) -> anyhow::Result<()> {
 		Path(path): Path<String>,
 		body: Bytes,
 	) -> Result<StatusCode, StatusCode> {
-		let data = bson::from_slice::<RawBsonRef>(&body).map_err(|_| StatusCode::BAD_REQUEST)?;
+		let data = from_slice::<Value>(&body).map_err(|_| StatusCode::BAD_REQUEST)?;
 		let event = EventRef { data, name: &path };
 		debug!(?event);
 

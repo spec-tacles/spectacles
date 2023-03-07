@@ -1,6 +1,9 @@
 use std::io::stderr;
 
-use bson::{RawBson, RawBsonRef};
+pub use rmp_serde::{
+	encode::write_named as to_writer, from_read, from_slice, to_vec_named as to_vec,
+};
+pub use rmpv::{Value, ValueRef};
 use serde::{Deserialize, Serialize};
 use tracing_subscriber::EnvFilter;
 
@@ -18,8 +21,8 @@ pub struct EventRef<'a, T> {
 	pub data: T,
 }
 
-pub type AnyEvent = Event<RawBson>;
-pub type AnyEventRef<'a> = EventRef<'a, RawBsonRef<'a>>;
+pub type AnyEvent = Event<Value>;
+pub type AnyEventRef<'a> = EventRef<'a, ValueRef<'a>>;
 
 pub fn init_tracing() {
 	tracing_subscriber::fmt::fmt()

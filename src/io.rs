@@ -1,7 +1,7 @@
 use std::io::{stdin, ErrorKind};
 
-use bson::{de::Error, from_reader};
 use futures::Stream;
+use rmp_serde::{decode::Error, from_read};
 use serde::de::DeserializeOwned;
 use tokio::{sync::mpsc, task::spawn_blocking};
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -16,14 +16,18 @@ where
 	spawn_blocking(move || {
 		let mut in_ = stdin();
 		loop {
-			match from_reader::<_, T>(&mut in_) {
+			match from_read::<_, T>(&mut in_) {
 				Ok(data) => {
 					if tx.send(data).is_err() {
 						warn!("Read value from STDIN but receiver is closed to receive it");
 						break;
 					}
 				}
-				Err(Error::Io(err)) if err.kind() == ErrorKind::UnexpectedEof => break,
+				Err(Error::InvalidDataRead(err)) | Err(Error::InvalidMarkerRead(err))
+					if err.kind() == ErrorKind::UnexpectedEof =>
+				{
+					break
+				}
 				Err(err) => warn!(%err),
 			}
 		}

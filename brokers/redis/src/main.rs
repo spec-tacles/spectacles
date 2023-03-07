@@ -1,8 +1,7 @@
 use anyhow::Result;
-use bson::to_vec;
 use futures::{StreamExt, TryStreamExt};
 use redust::pool::{Manager, Pool};
-use spectacles::{init_tracing, io::read, AnyEvent, EventRef};
+use spectacles::{init_tracing, io::read, to_vec, AnyEvent, EventRef};
 use tokio::{
 	io::{stdout, AsyncWriteExt},
 	task::JoinSet,

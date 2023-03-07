@@ -1,11 +1,10 @@
+use anyhow::Result;
+use paho_mqtt::{Client, ConnectOptions, CreateOptions, Message};
+use spectacles::{from_read, from_slice, init_tracing, to_vec, to_writer, AnyEvent};
 use std::{
-	io::{stdin, stdout, Write},
+	io::{stdin, stdout},
 	thread::spawn,
 };
-use anyhow::Result;
-use bson::{from_reader, from_slice, to_vec};
-use paho_mqtt::{Client, ConnectOptions, CreateOptions, Message};
-use spectacles::{init_tracing, AnyEvent, AnyEventRef};
 
 use crate::config::Config;
 
@@ -15,7 +14,7 @@ fn publish_from_stdin(mqtt: Client, qos: i32) -> Result<()> {
 	let mut in_ = stdin();
 
 	loop {
-		let event = from_reader::<_, AnyEvent>(&mut in_)?;
+		let event = from_read::<_, AnyEvent>(&mut in_)?;
 
 		let message = Message::new(event.name, to_vec(&event.data)?, qos);
 		mqtt.publish(message)?;
@@ -29,11 +28,11 @@ fn consume_to_stdout(mqtt: Client, events: Vec<String>, qos: i32) -> Result<()> 
 	let stream = mqtt.start_consuming();
 
 	while let Some(message) = stream.recv()? {
-		let event = AnyEventRef {
-			name: message.topic(),
+		let event = AnyEvent {
+			name: message.topic().to_owned(),
 			data: from_slice(message.payload())?,
 		};
-		out.write_all(&to_vec(&event)?)?;
+		to_writer(&mut out, &event)?;
 	}
 
 	todo!()

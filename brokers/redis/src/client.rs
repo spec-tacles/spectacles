@@ -6,7 +6,6 @@ use std::{
 };
 
 use anyhow::{Error, Result};
-use bson::{to_vec, RawBson};
 use bytes::Bytes;
 use futures::{
 	stream::{iter, poll_fn, repeat_with, select, select_all},
@@ -22,6 +21,7 @@ use redust::{
 	pool::Pool,
 	resp::from_data,
 };
+use spectacles::{to_vec, Value};
 use tokio::time::sleep;
 
 use self::message::Message;
@@ -83,7 +83,7 @@ impl Client {
 		}
 	}
 
-	pub async fn publish(&self, event: impl AsRef<str>, data: &RawBson) -> Result<Id> {
+	pub async fn publish(&self, event: impl AsRef<str>, data: &Value) -> Result<Id> {
 		let mut conn = self.pool.get().await?;
 		let data = conn
 			.cmd([
